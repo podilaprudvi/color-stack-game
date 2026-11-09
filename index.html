@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Color Stack Challenge - Enhanced</title>
+    <title>Color Stack Challenge - Random Levels</title>
     <style>
         body {
             font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
@@ -144,17 +144,11 @@
     <div class="win-message" id="winMessage"></div>
 
     <div class="controls">
-        <button onclick="resetGame()">Restart Game</button>
+        <button onclick="resetGame()">New Random Game</button>
     </div>
 
     <script>
-        let posts = [
-            ['red', 'blue', 'yellow', 'red'],
-            ['blue', 'yellow', 'red', 'blue'],
-            ['yellow', 'red', 'blue', 'yellow'],
-            []
-        ];
-
+        let posts = [];
         let selectedPost = null;
         let moves = 0;
         let secondsElapsed = 0;
@@ -180,6 +174,29 @@
             const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
             const secs = (secondsElapsed % 60).toString().padStart(2, '0');
             document.getElementById('timer').innerText = `${mins}:${secs}`;
+        }
+
+        // Generates a randomized layout of 4 rings for each of the 3 colors (red, blue, yellow)
+        function generateRandomPuzzle() {
+            let allRings = [
+                'red', 'red', 'red', 'red',
+                'blue', 'blue', 'blue', 'blue',
+                'yellow', 'yellow', 'yellow', 'yellow'
+            ];
+
+            // Shuffle the rings array randomly
+            for (let i = allRings.length - 1; i > 0; i--) {
+                const j = Math.floor(Math.random() * (i + 1));
+                [allRings[i], allRings[j]] = [allRings[j], allRings[i]];
+            }
+
+            // Distribute across 3 posts (4 rings each), leaving the 4th post empty
+            posts = [
+                allRings.slice(0, 4),
+                allRings.slice(4, 8),
+                allRings.slice(8, 12),
+                []
+            ];
         }
 
         function renderBoard() {
@@ -223,7 +240,6 @@
                 if (selectedPost === index) {
                     selectedPost = null;
                 } else {
-                    // Execute move
                     const ring = posts[selectedPost].pop();
                     posts[index].push(ring);
                     moves++;
@@ -268,12 +284,7 @@
 
         function resetGame() {
             stopTimer();
-            posts = [
-                ['red', 'blue', 'yellow', 'red'],
-                ['blue', 'yellow', 'red', 'blue'],
-                ['yellow', 'red', 'blue', 'yellow'],
-                []
-            ];
+            generateRandomPuzzle();
             selectedPost = null;
             moves = 0;
             secondsElapsed = 0;
@@ -283,7 +294,8 @@
             renderBoard();
         }
 
-        // Initialize
+        // Initialize first random game on load
+        generateRandomPuzzle();
         updateTimerDisplay();
         renderBoard();
     </script>
