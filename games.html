@@ -1,0 +1,291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Color Stack Challenge - Enhanced</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background: linear-gradient(135deg, #1e3c72, #2a5298);
+            color: #fff;
+            margin: 0;
+            padding: 20px;
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            min-height: 100vh;
+        }
+
+        h1 { margin-bottom: 5px; text-shadow: 2px 2px 4px rgba(0,0,0,0.3); }
+        .instructions { font-size: 0.95rem; margin-bottom: 15px; opacity: 0.9; text-align: center; max-width: 450px;}
+
+        .stats-panel {
+            display: flex;
+            gap: 30px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 10px 20px;
+            border-radius: 12px;
+            margin-bottom: 20px;
+            font-size: 1.1rem;
+            font-weight: bold;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+
+        .game-board {
+            display: flex;
+            gap: 20px;
+            background: rgba(255, 255, 255, 0.1);
+            padding: 30px 20px 20px 20px;
+            border-radius: 20px;
+            box-shadow: 0 8px 32px 0 rgba(0, 0, 0, 0.37);
+            backdrop-filter: blur(4px);
+            border: 1px solid rgba(255, 255, 255, 0.18);
+        }
+
+        .post-container {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            cursor: pointer;
+            position: relative;
+        }
+
+        .post {
+            width: 16px;
+            height: 180px;
+            background: #87CEEB;
+            border-radius: 8px;
+            position: relative;
+            display: flex;
+            flex-direction: column-reverse; /* Stack rings from bottom up */
+            align-items: center;
+            padding-bottom: 10px;
+            box-shadow: inset 0 2px 5px rgba(0,0,0,0.3);
+        }
+
+        .base {
+            width: 70px;
+            height: 20px;
+            background: #00bcd4;
+            border-radius: 10px;
+            margin-top: -5px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+        }
+
+        .ring {
+            width: 55px;
+            height: 25px;
+            border-radius: 15px;
+            margin-top: 4px;
+            box-shadow: 0 3px 5px rgba(0,0,0,0.3);
+            border: 2px solid rgba(255,255,255,0.4);
+            transition: transform 0.2s ease;
+        }
+
+        .post-container.selected .post {
+            background: #ffeb3b;
+        }
+        
+        .post-container.selected .ring:last-child {
+            transform: translateY(-8px);
+            box-shadow: 0 6px 10px rgba(0,0,0,0.4);
+        }
+
+        .colors-red { background: #ff4757; }
+        .colors-blue { background: #2ed573; }
+        .colors-yellow { background: #ffa502; }
+
+        .controls {
+            margin-top: 25px;
+            display: flex;
+            gap: 15px;
+        }
+
+        button {
+            padding: 10px 20px;
+            font-size: 1rem;
+            font-weight: bold;
+            border: none;
+            border-radius: 8px;
+            background: #ff4757;
+            color: white;
+            cursor: pointer;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.2);
+            transition: background 0.2s, transform 0.1s;
+        }
+
+        button:hover { background: #ff6b81; transform: translateY(-2px); }
+        button:active { transform: translateY(0); }
+
+        .win-message {
+            margin-top: 20px;
+            font-size: 1.3rem;
+            font-weight: bold;
+            color: #2ed573;
+            text-shadow: 1px 1px 2px rgba(0,0,0,0.5);
+            min-height: 30px;
+            text-align: center;
+        }
+    </style>
+</head>
+<body>
+
+    <h1>Color Stack Challenge</h1>
+    <div class="instructions">Click a post to pick up its top ring, then click another post to place it. Sort each post into a single unique color!</div>
+
+    <div class="stats-panel">
+        <div>Moves: <span id="moveCount">0</span></div>
+        <div>Time: <span id="timer">00:00</span></div>
+    </div>
+
+    <div class="game-board" id="board"></div>
+
+    <div class="win-message" id="winMessage"></div>
+
+    <div class="controls">
+        <button onclick="resetGame()">Restart Game</button>
+    </div>
+
+    <script>
+        let posts = [
+            ['red', 'blue', 'yellow', 'red'],
+            ['blue', 'yellow', 'red', 'blue'],
+            ['yellow', 'red', 'blue', 'yellow'],
+            []
+        ];
+
+        let selectedPost = null;
+        let moves = 0;
+        let secondsElapsed = 0;
+        let timerInterval = null;
+        let gameStarted = false;
+        let isWon = false;
+
+        function startTimer() {
+            if (!timerInterval) {
+                timerInterval = setInterval(() => {
+                    secondsElapsed++;
+                    updateTimerDisplay();
+                }, 1000);
+            }
+        }
+
+        function stopTimer() {
+            clearInterval(timerInterval);
+            timerInterval = null;
+        }
+
+        function updateTimerDisplay() {
+            const mins = Math.floor(secondsElapsed / 60).toString().padStart(2, '0');
+            const secs = (secondsElapsed % 60).toString().padStart(2, '0');
+            document.getElementById('timer').innerText = `${mins}:${secs}`;
+        }
+
+        function renderBoard() {
+            const board = document.getElementById('board');
+            board.innerHTML = '';
+
+            posts.forEach((post, index) => {
+                const container = document.createElement('div');
+                container.className = `post-container ${selectedPost === index ? 'selected' : ''}`;
+                container.onclick = () => handlePostClick(index);
+
+                const postEl = document.createElement('div');
+                postEl.className = 'post';
+
+                post.forEach(color => {
+                    const ring = document.createElement('div');
+                    ring.className = `ring colors-${color}`;
+                    postEl.appendChild(ring);
+                });
+
+                const baseEl = document.createElement('div');
+                baseEl.className = 'base';
+
+                container.appendChild(postEl);
+                container.appendChild(baseEl);
+                board.appendChild(container);
+            });
+
+            document.getElementById('moveCount').innerText = moves;
+            checkWinCondition();
+        }
+
+        function handlePostClick(index) {
+            if (isWon) return;
+
+            if (selectedPost === null) {
+                if (posts[index].length > 0) {
+                    selectedPost = index;
+                }
+            } else {
+                if (selectedPost === index) {
+                    selectedPost = null;
+                } else {
+                    // Execute move
+                    const ring = posts[selectedPost].pop();
+                    posts[index].push(ring);
+                    moves++;
+                    
+                    if (!gameStarted) {
+                        gameStarted = true;
+                        startTimer();
+                    }
+
+                    selectedPost = null;
+                }
+            }
+            renderBoard();
+        }
+
+        function checkWinCondition() {
+            let won = true;
+            let activePostsCount = 0;
+
+            posts.forEach(post => {
+                if (post.length > 0) {
+                    activePostsCount++;
+                    if (post.length !== 4) {
+                        won = false;
+                    } else {
+                        const firstColor = post[0];
+                        const allSame = post.every(color => color === firstColor);
+                        if (!allSame) won = false;
+                    }
+                }
+            });
+
+            const winMsg = document.getElementById('winMessage');
+            if (won && activePostsCount > 0 && !isWon) {
+                isWon = true;
+                stopTimer();
+                winMsg.innerText = `🎉 Amazing! Solved in ${moves} moves and ${document.getElementById('timer').innerText}!`;
+            } else if (!won) {
+                winMsg.innerText = "";
+            }
+        }
+
+        function resetGame() {
+            stopTimer();
+            posts = [
+                ['red', 'blue', 'yellow', 'red'],
+                ['blue', 'yellow', 'red', 'blue'],
+                ['yellow', 'red', 'blue', 'yellow'],
+                []
+            ];
+            selectedPost = null;
+            moves = 0;
+            secondsElapsed = 0;
+            gameStarted = false;
+            isWon = false;
+            updateTimerDisplay();
+            renderBoard();
+        }
+
+        // Initialize
+        updateTimerDisplay();
+        renderBoard();
+    </script>
+</body>
+</html>
